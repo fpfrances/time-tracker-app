@@ -46,32 +46,6 @@ html, body {
   animation: animateC 2s linear infinite;
 }
 
-span {
-  display: block;
-  position: absolute;
-  top: calc(50% - 2px);
-  left: 50%;
-  width: 50%;
-  height: 4px;
-  background: transparent;
-  transform-origin: left;
-  animation: animate 2s linear infinite;
-}
-
-span:before {
-  content: '';
-  position: absolute;
-  width: 4vw;
-  height: 4vw;
-  max-width: 16px;
-  max-height: 16px;
-  border-radius: 50%;
-  background: blue;
-  top: -6px;
-  right: -8px;
-  box-shadow: 0 0 20px blue;
-}
-
 @keyframes animateC {
   0% {
     transform: rotate(0deg);
