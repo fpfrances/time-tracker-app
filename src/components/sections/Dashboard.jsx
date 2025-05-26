@@ -185,7 +185,7 @@ export const Dashboard = () => {
           <h1 className="masked-text text-5xl font-bold mb-10">Welcome to your Dashboard</h1>
           {user && (
             <p className="text-lg text-white">
-              Hello, {user.user_metadata.full_name || user.email}!
+              Hello, {user.user_metadata.name || user.email}!
             </p>
           )}
         </div>
@@ -323,7 +323,7 @@ export const Dashboard = () => {
         <div className="w-full mt-6 bg-gradient-to-r from-purple-500 to-blue-600 transition-all duration-500 px-6 py-10 rounded-lg shadow-md mb-6">
             <div className="flex flex-col md:flex-row items-center justify-between w-full">
                 <div className="max-w-[300px] sm:max-w-[400px] md:max-w-[300px] lg:max-w-[350px] text-white break-words">
-                    <h2 className="text-xl font-semibold text-white text-center jystify-center">
+                    <h2 className="text-xl font-semibold text-white text-center justify-center">
                         Download your weekly/monthly report
                     </h2>
                 </div>

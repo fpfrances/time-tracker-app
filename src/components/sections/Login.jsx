@@ -1,19 +1,49 @@
+console.log("Login.jsx is running");
+
 import { useState } from "react";
 import { RevealOnScroll } from "../RevealOnScroll";
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { signUpUser, loginUser } from "/src/supabase/db";
 
 export const Login = () => {
   const [formType, setFormType] = useState("register");
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
+
+  if (formType === "register") {
+    const { data, error } = await signUpUser(email, password, { name });
+    console.log("Supabase Response:", { data, error });
+
+    if (error) setError(error.message);
+    else alert("Check your email to confirm your registration.");
+  } else {
+    // eslint-disable-next-line no-unused-vars
+    const { data, error } = await loginUser(email, password);
+    if (error) setError(error.message);
+    else {
+      alert("Login successful!");
+      navigate("/dashboard");
+    }
+  }
+};
 
   return (
-    <section
-      id="login"
-      className="flex flex-col items-center justify-center min-h-screen"
-    >
+    <section id="login" className="flex flex-col items-center justify-center min-h-screen">
       <RevealOnScroll>
         <div className="text-center z-10 px-4">
-          <form className="flex flex-col items-center justify-center px-10 py-6 bg-gradient-to-r from-purple-500 to-blue-600 rounded-lg shadow-md transition-all duration-500">
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col items-center justify-center px-10 py-6 bg-gradient-to-r from-purple-500 to-blue-600 rounded-lg shadow-md transition-all duration-500"
+          >
             <div className="flex items-center justify-center space-x-8 mb-4">
               <button
                 type="button"
@@ -35,106 +65,97 @@ export const Login = () => {
               </button>
             </div>
 
-            {/* Form content */}
             <div className="w-full transition-opacity duration-500 ease-in-out">
               {formType === "register" && (
                 <div className="animate-fadeIn w-full">
-                  <label
-                    for="name"
-                    className="block w-full text-left text-lg font-semibold text-white mt-4"
-                  >
+                  <label className="block text-left text-lg font-semibold text-white mt-4">
                     Name
                   </label>
                   <input
                     type="text"
-                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     placeholder="name..."
                     required
-                    className="w-full mb-4 px-2 py-1.5 bg-transparent border border-white rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-white focus:shadow-white shadow-lg"
+                    className="w-full mb-4 px-2 py-1.5 bg-transparent border border-white rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-white shadow-lg"
                   />
 
-                  <label
-                    for="email"
-                    className="block w-full text-left text-lg font-semibold text-white"
-                  >
+                  <label className="block text-left text-lg font-semibold text-white">
                     Email
                   </label>
                   <input
                     type="email"
-                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="email..."
                     required
-                    className="w-full mb-4 px-2 py-1.5 bg-transparent border border-white rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-white focus:shadow-white shadow-lg"
+                    className="w-full mb-4 px-2 py-1.5 bg-transparent border border-white rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-white shadow-lg"
                   />
 
-                  <label
-                    for="password"
-                    className="block w-full text-left text-lg font-semibold text-white"
-                  >
+                  <label className="block text-left text-lg font-semibold text-white">
                     Password
                   </label>
                   <div className="relative w-full">
                     <input
-                        type={showPassword ? 'text' : 'password'}
-                        id="password-login"
-                        placeholder="password..."
-                        required
-                        className="w-full px-2 py-1.5 pr-10 bg-transparent border border-white rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-white focus:shadow-white shadow-lg"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="password..."
+                      required
+                      className="w-full px-2 py-1.5 pr-10 bg-transparent border border-white rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-white shadow-lg"
                     />
                     <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white focus:outline-none"
-                        tabIndex={-1} // prevent button from receiving focus on tab
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white"
+                      tabIndex={-1}
                     >
-                        {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                      {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                     </button>
-                    </div>
+                  </div>
                 </div>
               )}
 
               {formType === "login" && (
                 <div className="animate-fadeIn w-full">
-                  <label
-                    for="email-login"
-                    className="block w-full text-left text-lg font-semibold text-white mt-4"
-                  >
+                  <label className="block text-left text-lg font-semibold text-white mt-4">
                     Email
                   </label>
                   <input
                     type="email"
-                    id="email-login"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="email..."
                     required
-                    className="w-full mb-4 px-2 py-1.5 bg-transparent border border-white rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-white focus:shadow-white shadow-lg"
+                    className="w-full mb-4 px-2 py-1.5 bg-transparent border border-white rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-white shadow-lg"
                   />
 
-                  <label
-                    for="password-login"
-                    className="block w-full text-left text-lg font-semibold text-white"
-                  >
+                  <label className="block text-left text-lg font-semibold text-white">
                     Password
                   </label>
                   <div className="relative w-full">
                     <input
-                        type={showPassword ? 'text' : 'password'}
-                        id="password-login"
-                        placeholder="password..."
-                        required
-                        className="w-full px-2 py-1.5 pr-10 bg-transparent border border-white rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-white focus:shadow-white shadow-lg"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="password..."
+                      required
+                      className="w-full px-2 py-1.5 pr-10 bg-transparent border border-white rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-white shadow-lg"
                     />
                     <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white focus:outline-none"
-                        tabIndex={-1} // prevent button from receiving focus on tab
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white"
+                      tabIndex={-1}
                     >
-                        {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                      {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                     </button>
-                    </div>
+                  </div>
                 </div>
               )}
             </div>
+
+            {error && <p className="text-red-500 mt-4">{error}</p>}
 
             <button
               type="submit"
