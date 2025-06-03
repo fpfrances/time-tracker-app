@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { RevealOnScroll } from "../RevealOnScroll";
 import { supabase } from "../../supabaseClient";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import { getWeeklyLogs } from "../../supabase/supabaseTimeLogs";
 
 // Basic Modal Component
 const NoteModal = ({ open, note, setNote, onSave, onCancel }) => {
@@ -94,7 +95,7 @@ export const Dashboard = () => {
     setNoteModalOpen(false);
 
     // Optionally: Persist this session to Supabase
-    /*
+    
     supabase.from("time_logs").insert([
       {
         user_id: user.id,
@@ -104,10 +105,13 @@ export const Dashboard = () => {
         timestamp: new Date().toISOString(),
       }
     ]);
-    */
+    
   };
 
-  const totalHours = Object.values(weeklyLog).reduce((sum, h) => sum + h, 0).toFixed(2);
+  const totalHours = Object.entries(weeklyLog)
+  .filter(([day]) => weekdayMap[day]) // only valid weekdays
+  .reduce((sum, [, h]) => sum + h, 0)
+  .toFixed(2);
 
   const chartData = Object.entries(weeklyLog).map(([key, value]) => ({
     day: weekdayMap[key],
@@ -115,53 +119,93 @@ export const Dashboard = () => {
   }));
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (data?.user) {
-        setUser(data.user);
-      } else {
-        console.error("User not found", error);
-      }
-    };
+  const getUserAndLogs = async () => {
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (!authData?.user) {
+      console.error("User not found", authError);
+      return;
+    }
 
-    const getWeekNumber = (date) => {
-      const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-      const dayNum = d.getUTCDay() || 7;
-      d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-      return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
-    };
+    const user = authData.user;
+    setUser(user);
 
-    const resetWeeklyData = () => {
-      setWeeklyLog({ Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 });
-      setDailyNotes({ Mon: "", Tue: "", Wed: "", Thu: "", Fri: "", Sat: "", Sun: "" });
-      setClockInTime(null);
-      setClockOutTime(null);
-      setIsClockedIn(false);
-    };
+    // Get local timezone offset in minutes
+    const timezoneOffset = new Date().getTimezoneOffset() * 60000;
 
-    const checkWeeklyReset = () => {
-      const now = new Date();
-      const isSunday = now.getDay() === 0;
-      const isLateSunday = isSunday && now.getHours() === 23 && now.getMinutes() >= 59;
+    // Start of the current week (Monday)
+    const now = new Date();
+    const day = now.getDay() || 7;
+    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      const lastReset = localStorage.getItem("lastWeeklyReset");
-      const lastResetDate = lastReset ? new Date(lastReset) : null;
+    // Adjust to UTC to match Supabase UTC storage
+    const weekStartUTC = new Date(startOfWeek.getTime() - timezoneOffset).toISOString();
+    const monthStartUTC = new Date(startOfMonth.getTime() - timezoneOffset).toISOString();
 
-      const shouldReset = isLateSunday && (!lastResetDate || getWeekNumber(now) !== getWeekNumber(lastResetDate));
+    try {
+      const weekly = await getWeeklyLogs(user.id, weekStartUTC);
+      const monthly = await getWeeklyLogs(user.id, monthStartUTC); // Replace this if you have a separate `getMonthlyLogs`
 
-      if (shouldReset) {
-        resetWeeklyData();
-        localStorage.setItem("lastWeeklyReset", now.toISOString());
-      }
-    };
+      // Prepare state from logs
+      const tempWeeklyLog = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
+      const tempDailyNotes = { Mon: "", Tue: "", Wed: "", Thu: "", Fri: "", Sat: "", Sun: "" };
 
-    getUser();
-    checkWeeklyReset();
+      weekly.forEach((log) => {
+        const localDate = new Date(new Date(log.clockInTime).getTime() + timezoneOffset);
+        const dayKey = localDate.toLocaleDateString("en-US", { weekday: "short" }); // e.g. Mon
+        tempWeeklyLog[dayKey] += parseFloat(log.duration || 0);
+        tempDailyNotes[dayKey] = log.note || "";
+      });
 
-    const interval = setInterval(checkWeeklyReset, 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+      setWeeklyLog(tempWeeklyLog);
+      setDailyNotes(tempDailyNotes);
+
+      // TODO: If you want to use `monthly` logs later, you can store them in another state
+      // setMonthlyLogData(monthly);
+
+    } catch (error) {
+      console.error("Failed to load logs:", error);
+    }
+  };
+
+  const getWeekNumber = (date) => {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+  };
+
+  const resetWeeklyData = () => {
+    setWeeklyLog({ Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 });
+    setDailyNotes({ Mon: "", Tue: "", Wed: "", Thu: "", Fri: "", Sat: "", Sun: "" });
+    setClockInTime(null);
+    setClockOutTime(null);
+    setIsClockedIn(false);
+  };
+
+  const checkWeeklyReset = () => {
+    const now = new Date();
+    const isSunday = now.getDay() === 0;
+    const isLateSunday = isSunday && now.getHours() === 23 && now.getMinutes() >= 59;
+
+    const lastReset = localStorage.getItem("lastWeeklyReset");
+    const lastResetDate = lastReset ? new Date(lastReset) : null;
+
+    const shouldReset = isLateSunday && (!lastResetDate || getWeekNumber(now) !== getWeekNumber(lastResetDate));
+
+    if (shouldReset) {
+      resetWeeklyData();
+      localStorage.setItem("lastWeeklyReset", now.toISOString());
+    }
+  };
+
+  getUserAndLogs();
+  checkWeeklyReset();
+
+  const interval = setInterval(checkWeeklyReset, 60 * 1000);
+  return () => clearInterval(interval);
+}, []);
 
   const handleLogout = async () => {
     if (window.confirm("Are you sure you want to logout?")) {
@@ -179,16 +223,24 @@ export const Dashboard = () => {
       onSave={handleSaveNote}
       onCancel={() => setNoteModalOpen(false)}
     />
-    <section id="home" className="flex flex-col items-center justify-start min-h-screen p-6">
+    <section id="home" className="flex flex-col items-center justify-start min-h-screen p-20">
       <RevealOnScroll>
-        <div className="text-center z-10 px-10 mb-6">
-          <h1 className="masked-text text-5xl font-bold mb-10">Welcome to your Dashboard</h1>
+        <div className="z-10 px-2 mb-5">
+        <h1 className="masked-text text-5xl font-bold mb-20">Welcome to your Dashboard</h1>
+        <div className="flex justify-between items-center">
           {user && (
             <p className="text-lg text-white">
               Hello, {user.user_metadata.name || user.email}!
             </p>
           )}
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-600 text-white font-semibold rounded-lg shadow-white shadow-md animate-pulse transition duration-300"
+          >
+            Logout
+          </button>
         </div>
+      </div>
 
         {/* Weekly Overview */}
         <div className="w-full bg-gradient-to-r from-purple-500 to-blue-600 transition-all duration-500 px-6 py-8 rounded-lg shadow-md mb-6">
@@ -221,7 +273,7 @@ export const Dashboard = () => {
                     data={chartData}
                     margin={{ top: 25, right: 15, left: -25, bottom: 0 }}
                     >
-                    <CartesianGrid strokeDasharray="1 5" stroke="#ccc" />
+                    <CartesianGrid strokeDasharray="0 1" stroke="#ccc" />
                     <XAxis
                     hide={false}
                     axisLine={false}
@@ -230,7 +282,7 @@ export const Dashboard = () => {
                     label={{
                         value: 'Day',
                         position: 'insideBottom',
-                        offset: 15,
+                        offset: 10,
                         style: { fill: 'white', fontSize: 14 },
                     }}
                     />
@@ -308,10 +360,12 @@ export const Dashboard = () => {
             Weekly Overview
         </h3>
         <ul className="list-inside text-white text-center">
-            {Object.entries(weeklyLog).map(([key, value]) => (
-            <li key={key}>
+            {Object.entries(weeklyLog)
+            .filter(([day]) => weekdayMap[day])
+            .map(([key, value]) => (
+              <li key={key}>
                 {weekdayMap[key]}: {value.toFixed(2)} hrs
-            </li>
+              </li>
             ))}
         </ul>
         <p className="text-white mt-4">
@@ -330,21 +384,13 @@ export const Dashboard = () => {
                 <div className="md:w-1/2 w-full flex flex-col items-center mt-2">
                     <h2 className="text-xl font-semibold text-white text-center">PDF or Excel file</h2>
                     <p className="text-white text-center justify-center">
-                       PDF and excel file logic will be implemented here and paper image logo to click
+                      PDF and excel file logic will be implemented here and paper image logo to click
                     </p>
                 </div>
             </div>
         </div>
-
-        {/* Logout Button */}
-        <button
-          onClick={handleLogout}
-          className="mt-20 px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-600 text-white font-semibold rounded-lg shadow-white shadow-md animate-pulse transition duration-300"
-        >
-          Logout
-        </button>
       </RevealOnScroll>
     </section>
-     </>
+    </>
   );
 };

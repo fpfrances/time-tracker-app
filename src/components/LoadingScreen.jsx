@@ -7,12 +7,12 @@ export const LoadingScreen = ({ onComplete }) => {
     // Start fade-out after 5 seconds
     const fadeTimer = setTimeout(() => {
       setFadeOut(true);
-    }, 6500);
+    }, 2000);
 
     // Fully remove after 6 seconds
     const completeTimer = setTimeout(() => {
       onComplete();
-    }, 7000);
+    }, 2500);
 
     return () => {
       clearTimeout(fadeTimer);

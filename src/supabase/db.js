@@ -1,16 +1,16 @@
 import { supabase } from '../supabaseClient';
 
 // Auth
-export const signUpUser = async (email, password, metadata = {}) => {
-  console.log("Calling supabase.auth.signUp with:", { email, password, metadata });
-
-  return await supabase.auth.signUp({
+export const signUpUser = async (email, password, name) => {
+  // 1. Sign up user with Supabase Auth
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: {
-      data: metadata,
-    },
+    options: { data: { name } }, // optional user metadata
   });
+
+  if (error) return { data, error };
+    return { data, error: null };
 };
 
 export const loginUser = async (email, password) => {
@@ -25,21 +25,32 @@ export const logoutUser = async () => {
   return await supabase.auth.signOut();
 };
 
-// Profiles Table (example)
+// Profile Management (separate function for creating/updating profiles)
+
+export const createUserProfile = async (userId, name, email) => {
+  const { data, error } = await supabase
+    .from("users")
+    .upsert({ id: userId, name, email }, { onConflict: "id" }) // if 'email' is part of your table
+    .select()
+    .single();
+
+  return { data, error };
+};
+
 export const getUserProfile = async (userId) => {
   const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
+    .from("users")
+    .select("*")
+    .eq("id", userId)
     .single();
   return { data, error };
 };
 
 export const updateUserProfile = async (userId, updates) => {
   const { data, error } = await supabase
-    .from('profiles')
+    .from("users")
     .update(updates)
-    .eq('id', userId)
+    .eq("id", userId)
     .single();
   return { data, error };
 };

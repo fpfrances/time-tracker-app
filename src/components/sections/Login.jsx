@@ -1,5 +1,3 @@
-console.log("Login.jsx is running");
-
 import { useState } from "react";
 import { RevealOnScroll } from "../RevealOnScroll";
 import { Eye, EyeOff } from "lucide-react";
@@ -17,22 +15,41 @@ export const Login = () => {
 
   const handleSubmit = async (e) => {
   e.preventDefault();
-  setError("");
+  setError(""); // clear previous error
 
   if (formType === "register") {
-    const { data, error } = await signUpUser(email, password, { name });
-    console.log("Supabase Response:", { data, error });
+    // eslint-disable-next-line no-unused-vars
+    const { data, error } = await signUpUser(email, password, name);
 
-    if (error) setError(error.message);
-    else alert("Check your email to confirm your registration.");
+    if (error) {
+      alert(`Signup Error: ${error.message}`);
+      setError(error.message);
+      return;
+    }
+
+    alert("Check your email to confirm your registration.");
+
+    /*
+    // Profile creation is commented out for now
+    if (data?.user?.id) {
+      const { error: profileError } = await createUserProfile(data.user.id, name);
+      if (profileError) {
+        console.warn("Profile creation error:", profileError.message);
+      }
+    }
+    */
   } else {
     // eslint-disable-next-line no-unused-vars
     const { data, error } = await loginUser(email, password);
-    if (error) setError(error.message);
-    else {
-      alert("Login successful!");
-      navigate("/dashboard");
+
+    if (error) {
+      alert(`Login Error: ${error.message}`);
+      setError(error.message);
+      return;
     }
+
+    alert("Login successful!");
+    navigate("/dashboard");
   }
 };
 
