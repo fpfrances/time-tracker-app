@@ -35,10 +35,10 @@ export const Dashboard = () => {
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [weeklyLog, setWeeklyLog] = useState({ Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 });
   const [dailyNotes, setDailyNotes] = useState({ Mon: "", Tue: "", Wed: "", Thu: "", Fri: "", Sat: "", Sun: "" });
-
   const [noteModalOpen, setNoteModalOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [currentDayKey, setCurrentDayKey] = useState("");
+  const [activeLogId, setActiveLogId] = useState(null);
 
   const weekdayMap = {
     Mon: "Monday",
@@ -50,68 +50,111 @@ export const Dashboard = () => {
     Sun: "Sunday",
   };
 
-  const handleClockIn = () => {
-    if (isClockedIn) return;
-    const now = new Date();
-    setClockInTime(now);
-    setIsClockedIn(true);
-    setClockOutTime(null);
-  };
+  const getDayKey = (date) => {
+  const dayIndex = date.getDay(); // Sunday = 0
+  const dayMap = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  return dayMap[dayIndex];
+};
 
-  const handleClockOut = () => {
-    if (!isClockedIn || clockOutTime) return;
+  const handleClockIn = async () => {
+  if (isClockedIn) return;
+  const now = new Date();
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    const now = new Date();
-    const dayKey = now.toLocaleDateString("en-US", { weekday: "short" }); // e.g. "Mon"
-    const durationMs = now - new Date(clockInTime);
-    const durationHrs = durationMs / (1000 * 60 * 60);
+  const { data, error } = await supabase.from("time_logs").insert([
+    {
+      user_id: user.id,
+      clock_in: now.toISOString(),
+      timezone,
+    }
+  ]).select().single();
 
-    setWeeklyLog((prev) => ({
-      ...prev,
-      [dayKey]: parseFloat((prev[dayKey] + durationHrs).toFixed(2)),
-    }));
+  if (error) {
+    console.error("Error during clock-in:", error);
+    return;
+  }
 
-    setCurrentDayKey(dayKey);
-    setNoteDraft("");
-    setNoteModalOpen(true);
-    setClockOutTime(now.toLocaleTimeString());
-    setIsClockedIn(false);
+  setClockInTime(now.toISOString());
+  setIsClockedIn(true);
+  setClockOutTime(null);
+  setActiveLogId(data.id);
+};
 
-    // Reset clockInTime after short delay
-    setTimeout(() => {
+  const handleClockOut = async () => {
+  if (!isClockedIn || clockOutTime) return;
+
+  const now = new Date();
+  const durationMs = now - new Date(clockInTime);
+  const durationHrs = durationMs / (1000 * 60 * 60);
+  const dayKey = getDayKey(now);
+
+  setWeeklyLog((prev) => ({
+    ...prev,
+    [dayKey]: parseFloat((prev[dayKey] + durationHrs).toFixed(2)),
+  }));
+
+  // Save clock out to Supabase
+  const { error } = await supabase
+    .from("time_logs")
+    .update({ clock_out: now.toISOString() })
+    .eq("id", activeLogId);
+
+  if (error) {
+    console.error("Error updating clock-out:", error);
+    return;
+  }
+
+  setCurrentDayKey(dayKey);
+  setNoteDraft("");
+  setNoteModalOpen(true);
+  setClockOutTime(now.toISOString());
+  setIsClockedIn(false);
+};
+
+  const handleSaveNote = async () => {
+  if (!currentDayKey || !clockInTime || !clockOutTime) {
+    setNoteModalOpen(false);
+    return;
+  }
+
+  try {
+    if (!activeLogId) {
+      console.error("No active log ID found for update.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("time_logs")
+      .update({
+        note: noteDraft,
+      })
+      .eq("id", activeLogId);
+
+    if (error) {
+      console.error("Failed to update time log:", error);
+    } else {
+      // Update dailyNotes state with new note for immediate UI update
+      setDailyNotes((prev) => ({
+        ...prev,
+        [currentDayKey]: noteDraft,
+      }));
+
+      // Reset clock times & active log AFTER saving note
       setClockInTime(null);
       setIsClockedIn(false);
-    }, 5000);
-  };
+      setActiveLogId(null);
+    }
+  } catch (err) {
+    console.error("Unexpected error updating time log:", err);
+  }
 
-  const handleSaveNote = () => {
-    if (!currentDayKey) return;
-
-    setDailyNotes((prev) => ({
-      ...prev,
-      [currentDayKey]: noteDraft,
-    }));
-
-    setNoteModalOpen(false);
-
-    // Optionally: Persist this session to Supabase
-    
-    supabase.from("time_logs").insert([
-      {
-        user_id: user.id,
-        day: currentDayKey,
-        duration: weeklyLog[currentDayKey],
-        note: noteDraft,
-        timestamp: new Date().toISOString(),
-      }
-    ]);
-    
-  };
+  setNoteModalOpen(false);
+};
 
   const totalHours = Object.entries(weeklyLog)
-  .filter(([day]) => weekdayMap[day]) // only valid weekdays
-  .reduce((sum, [, h]) => sum + h, 0)
-  .toFixed(2);
+    .filter(([day]) => weekdayMap[day]) // only valid weekdays
+    .reduce((sum, [, h]) => sum + h, 0)
+    .toFixed(2);
 
   const chartData = Object.entries(weeklyLog).map(([key, value]) => ({
     day: weekdayMap[key],
@@ -119,93 +162,86 @@ export const Dashboard = () => {
   }));
 
   useEffect(() => {
-  const getUserAndLogs = async () => {
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (!authData?.user) {
-      console.error("User not found", authError);
-      return;
-    }
+    let interval;
+    const getUserAndLogs = async () => {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (!authData?.user) {
+        console.error("User not found", authError);
+        return;
+      }
 
-    const user = authData.user;
-    setUser(user);
+      const user = authData.user;
+      setUser(user);
 
-    // Get local timezone offset in minutes
-    const timezoneOffset = new Date().getTimezoneOffset() * 60000;
+      const timezoneOffset = new Date().getTimezoneOffset() * 60000;
 
-    // Start of the current week (Monday)
-    const now = new Date();
-    const day = now.getDay() || 7;
-    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const now = new Date();
+      const day = now.getDay() || 7;
+      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    // Adjust to UTC to match Supabase UTC storage
-    const weekStartUTC = new Date(startOfWeek.getTime() - timezoneOffset).toISOString();
-    const monthStartUTC = new Date(startOfMonth.getTime() - timezoneOffset).toISOString();
+      const weekStartUTC = new Date(startOfWeek.getTime() - timezoneOffset).toISOString();
+      const monthStartUTC = new Date(startOfMonth.getTime() - timezoneOffset).toISOString();
 
-    try {
-      const weekly = await getWeeklyLogs(user.id, weekStartUTC);
-      const monthly = await getWeeklyLogs(user.id, monthStartUTC); // Replace this if you have a separate `getMonthlyLogs`
+      try {
+        const weekly = await getWeeklyLogs(user.id, weekStartUTC);
+        const monthly = await getWeeklyLogs(user.id, monthStartUTC); // Replace if separate monthly fetching is needed
 
-      // Prepare state from logs
-      const tempWeeklyLog = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
-      const tempDailyNotes = { Mon: "", Tue: "", Wed: "", Thu: "", Fri: "", Sat: "", Sun: "" };
+        const tempWeeklyLog = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
+        const tempDailyNotes = { Mon: "", Tue: "", Wed: "", Thu: "", Fri: "", Sat: "", Sun: "" };
 
-      weekly.forEach((log) => {
-        const localDate = new Date(new Date(log.clockInTime).getTime() + timezoneOffset);
-        const dayKey = localDate.toLocaleDateString("en-US", { weekday: "short" }); // e.g. Mon
-        tempWeeklyLog[dayKey] += parseFloat(log.duration || 0);
-        tempDailyNotes[dayKey] = log.note || "";
-      });
+        weekly.forEach((log) => {
+          const localDate = new Date(new Date(log.clockInTime).getTime() + timezoneOffset);
+          const dayKey = localDate.toLocaleDateString("en-US", { weekday: "short" });
+          tempWeeklyLog[dayKey] += parseFloat(log.duration || 0);
+          tempDailyNotes[dayKey] = log.note || "";
+        });
 
-      setWeeklyLog(tempWeeklyLog);
-      setDailyNotes(tempDailyNotes);
+        setWeeklyLog(tempWeeklyLog);
+        setDailyNotes(tempDailyNotes);
+      } catch (error) {
+        console.error("Failed to load logs:", error);
+      }
+    };
 
-      // TODO: If you want to use `monthly` logs later, you can store them in another state
-      // setMonthlyLogData(monthly);
+    const getWeekNumber = (date) => {
+      const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+      const dayNum = d.getUTCDay() || 7;
+      d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+    };
 
-    } catch (error) {
-      console.error("Failed to load logs:", error);
-    }
-  };
+    const resetWeeklyData = () => {
+      setWeeklyLog({ Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 });
+      setDailyNotes({ Mon: "", Tue: "", Wed: "", Thu: "", Fri: "", Sat: "", Sun: "" });
+      setClockInTime(null);
+      setClockOutTime(null);
+      setIsClockedIn(false);
+    };
 
-  const getWeekNumber = (date) => {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
-  };
+    const checkWeeklyReset = () => {
+      const now = new Date();
+      const isSunday = now.getDay() === 0;
+      const isLateSunday = isSunday && now.getHours() === 23 && now.getMinutes() >= 59;
 
-  const resetWeeklyData = () => {
-    setWeeklyLog({ Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 });
-    setDailyNotes({ Mon: "", Tue: "", Wed: "", Thu: "", Fri: "", Sat: "", Sun: "" });
-    setClockInTime(null);
-    setClockOutTime(null);
-    setIsClockedIn(false);
-  };
+      const lastReset = localStorage.getItem("lastWeeklyReset");
+      const lastResetDate = lastReset ? new Date(lastReset) : null;
 
-  const checkWeeklyReset = () => {
-    const now = new Date();
-    const isSunday = now.getDay() === 0;
-    const isLateSunday = isSunday && now.getHours() === 23 && now.getMinutes() >= 59;
+      const shouldReset = isLateSunday && (!lastResetDate || getWeekNumber(now) !== getWeekNumber(lastResetDate));
 
-    const lastReset = localStorage.getItem("lastWeeklyReset");
-    const lastResetDate = lastReset ? new Date(lastReset) : null;
+      if (shouldReset) {
+        resetWeeklyData();
+        localStorage.setItem("lastWeeklyReset", now.toISOString());
+      }
+    };
 
-    const shouldReset = isLateSunday && (!lastResetDate || getWeekNumber(now) !== getWeekNumber(lastResetDate));
+    getUserAndLogs();
+    checkWeeklyReset();
 
-    if (shouldReset) {
-      resetWeeklyData();
-      localStorage.setItem("lastWeeklyReset", now.toISOString());
-    }
-  };
-
-  getUserAndLogs();
-  checkWeeklyReset();
-
-  const interval = setInterval(checkWeeklyReset, 60 * 1000);
-  return () => clearInterval(interval);
-}, []);
+    interval = setInterval(checkWeeklyReset, 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = async () => {
     if (window.confirm("Are you sure you want to logout?")) {
@@ -350,7 +386,7 @@ export const Dashboard = () => {
               >
                 Clock Out
               </button>
-              {clockOutTime && <p className="text-white">Clocked out at: {clockOutTime}</p>}
+              {clockOutTime && <p className="text-white">Clocked out at: {new Date(clockOutTime).toLocaleTimeString()}</p>}
             </div>
           </div>
 

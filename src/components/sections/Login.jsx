@@ -47,7 +47,6 @@ export const Login = () => {
       setError(error.message);
       return;
     }
-
     alert("Login successful!");
     navigate("/dashboard");
   }
