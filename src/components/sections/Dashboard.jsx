@@ -4,6 +4,7 @@ import { supabase } from "../../supabaseClient";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { getWeeklyLogs } from "../../supabase/supabaseTimeLogs";
 
+
 // Basic Modal Component
 const NoteModal = ({ open, note, setNote, onSave, onCancel }) => {
   if (!open) return null;
@@ -39,6 +40,7 @@ export const Dashboard = () => {
   const [noteDraft, setNoteDraft] = useState("");
   const [currentDayKey, setCurrentDayKey] = useState("");
   const [activeLogId, setActiveLogId] = useState(null);
+  const [isLockingClockIn, setIsLockingClockIn] = useState(false);
 
   const weekdayMap = {
     Mon: "Monday",
@@ -51,39 +53,59 @@ export const Dashboard = () => {
   };
 
   const getDayKey = (date) => {
-  const dayIndex = date.getDay(); // Sunday = 0
-  const dayMap = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const dayIndex = date.getDay(); // 0 = Sunday, 1 = Monday, ...
+  const dayMap = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   return dayMap[dayIndex];
 };
 
   const handleClockIn = async () => {
-  if (isClockedIn) return;
+  if (isClockedIn || isLockingClockIn) return;
+
+  setIsLockingClockIn(true);
   const now = new Date();
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // Format local time as "YYYY-MM-DDTHH:mm:ss"
+  const getLocalISOString = (date = new Date()) => {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  };
+
+  const localTime = getLocalISOString(now);
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
   const { data, error } = await supabase.from("time_logs").insert([
     {
       user_id: user.id,
-      clock_in: now.toISOString(),
-      timezone,
+      clock_in: localTime,    // local time string
+      timezone,               // e.g., "America/New_York"
     }
   ]).select().single();
 
   if (error) {
     console.error("Error during clock-in:", error);
+    setIsLockingClockIn(false); // unlock on failure
     return;
   }
 
-  setClockInTime(now.toISOString());
+  setClockInTime(localTime);
   setIsClockedIn(true);
   setClockOutTime(null);
   setActiveLogId(data.id);
+  setIsLockingClockIn(false); // unlock after success
 };
 
   const handleClockOut = async () => {
   if (!isClockedIn || clockOutTime) return;
 
   const now = new Date();
+
+  // Reuse the local time formatter from handleClockIn
+  const getLocalISOString = (date = new Date()) => {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  };
+
+  const localTime = getLocalISOString(now);
   const durationMs = now - new Date(clockInTime);
   const durationHrs = durationMs / (1000 * 60 * 60);
   const dayKey = getDayKey(now);
@@ -93,10 +115,9 @@ export const Dashboard = () => {
     [dayKey]: parseFloat((prev[dayKey] + durationHrs).toFixed(2)),
   }));
 
-  // Save clock out to Supabase
   const { error } = await supabase
     .from("time_logs")
-    .update({ clock_out: now.toISOString() })
+    .update({ clock_out: localTime })
     .eq("id", activeLogId);
 
   if (error) {
@@ -107,7 +128,7 @@ export const Dashboard = () => {
   setCurrentDayKey(dayKey);
   setNoteDraft("");
   setNoteModalOpen(true);
-  setClockOutTime(now.toISOString());
+  setClockOutTime(localTime);
   setIsClockedIn(false);
 };
 
@@ -173,29 +194,39 @@ export const Dashboard = () => {
       const user = authData.user;
       setUser(user);
 
-      const timezoneOffset = new Date().getTimezoneOffset() * 60000;
+      //const timezoneOffset = new Date().getTimezoneOffset() * 60000;
 
+      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
       const now = new Date();
-      const day = now.getDay() || 7;
-      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const localNow = new Date(now.toLocaleString("en-US", { timeZone: userTimeZone }));
+      const day = localNow.getDay() || 7;
+      const startOfWeekLocal = new Date(localNow.getFullYear(), localNow.getMonth(), localNow.getDate() - day + 1);
 
-      const weekStartUTC = new Date(startOfWeek.getTime() - timezoneOffset).toISOString();
-      const monthStartUTC = new Date(startOfMonth.getTime() - timezoneOffset).toISOString();
+      // Convert to UTC ISO string
+      const weekStartUTC = startOfWeekLocal.toISOString();
+
+      //const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      //const monthStartUTC = startOfMonth.toISOString();
 
       try {
         const weekly = await getWeeklyLogs(user.id, weekStartUTC);
-        const monthly = await getWeeklyLogs(user.id, monthStartUTC); // Replace if separate monthly fetching is needed
+        //const monthly = await getWeeklyLogs(user.id, monthStartUTC); // Replace if separate monthly fetching is needed
 
         const tempWeeklyLog = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
         const tempDailyNotes = { Mon: "", Tue: "", Wed: "", Thu: "", Fri: "", Sat: "", Sun: "" };
 
         weekly.forEach((log) => {
-          const localDate = new Date(new Date(log.clockInTime).getTime() + timezoneOffset);
-          const dayKey = localDate.toLocaleDateString("en-US", { weekday: "short" });
-          tempWeeklyLog[dayKey] += parseFloat(log.duration || 0);
-          tempDailyNotes[dayKey] = log.note || "";
+        const logTime = log.clockOutTime || log.clockInTime;
+
+        const localDateStr = new Date(logTime).toLocaleString("en-US", {
+          timeZone: userTimeZone,
         });
+        const localDate = new Date(localDateStr); // parse the local time safely
+        const dayKey = localDate.toLocaleDateString("en-US", { weekday: "short" });
+
+        tempWeeklyLog[dayKey] += parseFloat(log.duration || 0);
+        tempDailyNotes[dayKey] = log.note || "";
+      });
 
         setWeeklyLog(tempWeeklyLog);
         setDailyNotes(tempDailyNotes);
@@ -224,10 +255,8 @@ export const Dashboard = () => {
       const now = new Date();
       const isSunday = now.getDay() === 0;
       const isLateSunday = isSunday && now.getHours() === 23 && now.getMinutes() >= 59;
-
       const lastReset = localStorage.getItem("lastWeeklyReset");
       const lastResetDate = lastReset ? new Date(lastReset) : null;
-
       const shouldReset = isLateSunday && (!lastResetDate || getWeekNumber(now) !== getWeekNumber(lastResetDate));
 
       if (shouldReset) {
@@ -360,7 +389,7 @@ export const Dashboard = () => {
             <div className="flex flex-col space-y-4">
               <button
                 onClick={handleClockIn}
-                disabled={isClockedIn}
+                disabled={isClockedIn || isLockingClockIn}
                 className={`py-2 rounded font-semibold transition ${
                   isClockedIn
                     ? "bg-gray-400 cursor-not-allowed text-white"
@@ -413,15 +442,17 @@ export const Dashboard = () => {
         <div className="w-full mt-6 bg-gradient-to-r from-purple-500 to-blue-600 transition-all duration-500 px-6 py-10 rounded-lg shadow-md mb-6">
             <div className="flex flex-col md:flex-row items-center justify-between w-full">
                 <div className="max-w-[300px] sm:max-w-[400px] md:max-w-[300px] lg:max-w-[350px] text-white break-words">
-                    <h2 className="text-xl font-semibold text-white text-center justify-center">
+                    <h2 className="text-xl font-semibold text-white text-center justify-center mb-2">
                         Download your weekly/monthly report
                     </h2>
                 </div>
-                <div className="md:w-1/2 w-full flex flex-col items-center mt-2">
-                    <h2 className="text-xl font-semibold text-white text-center">PDF or Excel file</h2>
-                    <p className="text-white text-center justify-center">
-                      PDF and excel file logic will be implemented here and paper image logo to click
-                    </p>
+                <div className="md:w-1/2 w-full flex flex-col items-center justify-left mt-2">
+                  <button
+                    onClick={handleLogout}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-600 text-white font-semibold rounded-lg shadow-white shadow-md animate-pulse transition duration-300"
+                    >
+                    Download PDF
+                  </button>
                 </div>
             </div>
         </div>

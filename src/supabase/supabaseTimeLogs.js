@@ -14,16 +14,16 @@ export async function getWeeklyLogs(user_id, fromDateISO) {
   }
 
   return data.map((log) => {
-    const clockIn = new Date(log.clock_in);
-    const clockOut = log.clock_out ? new Date(log.clock_out) : new Date();
-    const durationHours = (clockOut - clockIn) / (1000 * 60 * 60); // duration in hours
+  const clockIn = new Date(log.clock_in);
+  const clockOut = log.clock_out ? new Date(log.clock_out) : new Date();
+  const durationHours = (clockOut - clockIn) / (1000 * 60 * 60);
 
-    return {
-      id: log.id,
-      clockInTime: log.clock_in,
-      clockOutTime: log.clock_out,
-      duration: durationHours,
-      note: log.note || "",
-    };
-  });
+  return {
+    id: log.id,
+    clockInTime: clockIn, // return as Date object
+    clockOutTime: log.clock_out ? clockOut : null, // Date or null
+    duration: durationHours,
+    note: log.note || "",
+  };
+});
 }

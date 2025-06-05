@@ -29,15 +29,6 @@ export const Login = () => {
 
     alert("Check your email to confirm your registration.");
 
-    /*
-    // Profile creation is commented out for now
-    if (data?.user?.id) {
-      const { error: profileError } = await createUserProfile(data.user.id, name);
-      if (profileError) {
-        console.warn("Profile creation error:", profileError.message);
-      }
-    }
-    */
   } else {
     // eslint-disable-next-line no-unused-vars
     const { data, error } = await loginUser(email, password);

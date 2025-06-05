@@ -25,8 +25,8 @@ export const logoutUser = async () => {
   return await supabase.auth.signOut();
 };
 
+{/*}
 // Profile Management (separate function for creating/updating profiles)
-
 export const createUserProfile = async (userId, name, email) => {
   const { data, error } = await supabase
     .from("users")
@@ -54,6 +54,7 @@ export const updateUserProfile = async (userId, updates) => {
     .single();
   return { data, error };
 };
+*/}
 
 // Example: Time logs Table
 export const getTimeLogs = async (userId) => {
