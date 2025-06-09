@@ -67,7 +67,7 @@ html, body {
 .masked-text {
     font-weight: bold;
     color: transparent;
-    background-image: url('src/assets/lightningball.jpg'); 
+    background-image: url('/lightningball.jpg'); 
     background-size: 180%; /* Enlarged for smooth animation */
     background-position: 0 50%;
     background-clip: text;
