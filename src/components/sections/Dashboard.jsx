@@ -12,6 +12,7 @@ import {
 import { getWeeklyLogs, getMonthlyLogs } from '../../supabase/supabaseTimeLogs';
 import { generateWeeklyPDF } from '../../utils/generateWeeklyReport';
 import { generateMonthlyPDF } from '../../utils/generateMonthlyReport';
+import { FaGithub, FaLinkedin } from 'react-icons/fa';
 
 // Basic Modal Component
 const NoteModal = ({ open, note, setNote, onSave, onCancel }) => {
@@ -713,6 +714,17 @@ export const Dashboard = () => {
                 </button>
               </div>
             </div>
+          </div>
+          <div className="translate-y-60 sm:translate-y-5 flex justify-center items-center gap-5">
+            <a
+              href="https://www.linkedin.com/in/filipefrances/"
+              target="_blank"
+            >
+              <FaLinkedin className="text-3xl text-blue-500 hover:text-blue-600 transition" />
+            </a>
+            <a href="https://github.com/fpfrances" target="_blank">
+              <FaGithub className="text-3xl text-gray-400 hover:text-white transition" />
+            </a>
           </div>
         </RevealOnScroll>
       </section>

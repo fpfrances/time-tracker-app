@@ -1,50 +1,53 @@
-import { useState } from "react";
-import { RevealOnScroll } from "../RevealOnScroll";
-import { Eye, EyeOff } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { signUpUser, loginUser } from "/src/supabase/db";
+import { useState } from 'react';
+import { RevealOnScroll } from '../RevealOnScroll';
+import { Eye, EyeOff } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { signUpUser, loginUser } from '/src/supabase/db';
+import { FaLinkedin, FaGithub } from 'react-icons/fa';
 
 export const Login = () => {
-  const [formType, setFormType] = useState("register");
+  const [formType, setFormType] = useState('register');
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [error, setError] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError(""); // clear previous error
+    e.preventDefault();
+    setError(''); // clear previous error
 
-  if (formType === "register") {
-    // eslint-disable-next-line no-unused-vars
-    const { data, error } = await signUpUser(email, password, name);
+    if (formType === 'register') {
+      // eslint-disable-next-line no-unused-vars
+      const { data, error } = await signUpUser(email, password, name);
 
-    if (error) {
-      alert(`Signup Error: ${error.message}`);
-      setError(error.message);
-      return;
+      if (error) {
+        alert(`Signup Error: ${error.message}`);
+        setError(error.message);
+        return;
+      }
+
+      alert('Check your email to confirm your registration.');
+    } else {
+      // eslint-disable-next-line no-unused-vars
+      const { data, error } = await loginUser(email, password);
+
+      if (error) {
+        alert(`Login Error: ${error.message}`);
+        setError(error.message);
+        return;
+      }
+      alert('Login successful!');
+      navigate('/dashboard');
     }
-
-    alert("Check your email to confirm your registration.");
-
-  } else {
-    // eslint-disable-next-line no-unused-vars
-    const { data, error } = await loginUser(email, password);
-
-    if (error) {
-      alert(`Login Error: ${error.message}`);
-      setError(error.message);
-      return;
-    }
-    alert("Login successful!");
-    navigate("/dashboard");
-  }
-};
+  };
 
   return (
-    <section id="login" className="flex flex-col items-center justify-center min-h-screen">
+    <section
+      id="login"
+      className="flex flex-col items-center justify-center min-h-screen"
+    >
       <RevealOnScroll>
         <div className="text-center z-10 px-4">
           <form
@@ -54,18 +57,18 @@ export const Login = () => {
             <div className="flex items-center justify-center space-x-8 mb-4">
               <button
                 type="button"
-                onClick={() => setFormType("register")}
+                onClick={() => setFormType('register')}
                 className={`text-lg px-5 border-r border-b border-white bg-transparent text-white font-semibold rounded-lg shadow-lg animate-pulse transition duration-300 ${
-                  formType === "register" ? "shadow-white" : ""
+                  formType === 'register' ? 'shadow-white' : ''
                 }`}
               >
                 Register
               </button>
               <button
                 type="button"
-                onClick={() => setFormType("login")}
+                onClick={() => setFormType('login')}
                 className={`text-lg px-5 border-r border-b border-white bg-transparent text-white font-semibold rounded-lg shadow-lg animate-pulse transition duration-300 ${
-                  formType === "login" ? "shadow-white" : ""
+                  formType === 'login' ? 'shadow-white' : ''
                 }`}
               >
                 Login
@@ -73,7 +76,7 @@ export const Login = () => {
             </div>
 
             <div className="w-full transition-opacity duration-500 ease-in-out">
-              {formType === "register" && (
+              {formType === 'register' && (
                 <div className="animate-fadeIn w-full">
                   <label className="block text-left text-lg font-semibold text-white mt-4">
                     Name
@@ -104,7 +107,7 @@ export const Login = () => {
                   </label>
                   <div className="relative w-full">
                     <input
-                      type={showPassword ? "text" : "password"}
+                      type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="password..."
@@ -123,7 +126,7 @@ export const Login = () => {
                 </div>
               )}
 
-              {formType === "login" && (
+              {formType === 'login' && (
                 <div className="animate-fadeIn w-full">
                   <label className="block text-left text-lg font-semibold text-white mt-4">
                     Email
@@ -142,7 +145,7 @@ export const Login = () => {
                   </label>
                   <div className="relative w-full">
                     <input
-                      type={showPassword ? "text" : "password"}
+                      type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="password..."
@@ -170,6 +173,17 @@ export const Login = () => {
             >
               Submit
             </button>
+            <div className="translate-y-60 sm:translate-y-120 flex justify-center items-center gap-5">
+              <a
+                href="https://www.linkedin.com/in/filipefrances/"
+                target="_blank"
+              >
+                <FaLinkedin className="text-3xl text-blue-500 hover:text-blue-600 transition" />
+              </a>
+              <a href="https://github.com/fpfrances" target="_blank">
+                <FaGithub className="text-3xl text-gray-400 hover:text-white transition" />
+              </a>
+            </div>
           </form>
         </div>
       </RevealOnScroll>
