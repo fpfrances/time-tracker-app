@@ -715,7 +715,7 @@ export const Dashboard = () => {
               </div>
             </div>
           </div>
-          <div className="translate-y-60 sm:translate-y-5 flex justify-center items-center gap-5">
+          <div className="translate-y-5 sm:translate-y-5 md:translate-y-5 lg:translate-y-5 flex justify-center items-center gap-5">
             <a
               href="https://www.linkedin.com/in/filipefrances/"
               target="_blank"

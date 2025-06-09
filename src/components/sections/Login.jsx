@@ -173,7 +173,7 @@ export const Login = () => {
             >
               Submit
             </button>
-            <div className="translate-y-60 sm:translate-y-120 flex justify-center items-center gap-5">
+            <div className="translate-y-20 sm:translate-y-20 md:translate-y-20 lg:translate-y-20 flex justify-center items-center gap-5">
               <a
                 href="https://www.linkedin.com/in/filipefrances/"
                 target="_blank"
