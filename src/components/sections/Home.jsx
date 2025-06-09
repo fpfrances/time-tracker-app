@@ -14,7 +14,7 @@ export const Home = () => {
             }}
             className="text-lg sm:text-lg md:text-2xl mt-10 px-3 py-1 bg-gradient-to-r from-purple-500 to-blue-600 text-white font-semibold rounded-lg shadow-white shadow-md animate-pulse transition duration-300"
             >
-            Register Now
+            Click to start
             </button>
             </div>
         </div>
