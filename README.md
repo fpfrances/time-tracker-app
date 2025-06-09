@@ -8,7 +8,9 @@ A simple and efficient time tracking application built with React, TailwindCSS, 
 
 - **User Authentication:** Secure signup, login, and session management using Supabase Auth.
 - **Clock In/Clock Out:** Track multiple work sessions per day with precise timestamps.
+- **Automatic 8-Hour Clock-Out:** To prevent unclosed sessions, the app automatically clocks you out after 8 hours of continuous clock-in time.
 - **Daily Notes:** Add notes to each clock-out event to record details or reflections about the work session.
+- **Weekly Reset:** Weekly summaries reset every Sunday at 11:59 PM, aligning reports to a Sunday–Saturday workweek.
 - **Weekly & Monthly Reports:** Generate and download PDF reports summarizing logged hours and notes.
 - **Time Zone Awareness:** All timestamps and calculations respect the user's local timezone.
 - **Responsive UI:** Clean, modern interface built with TailwindCSS to work across devices.
