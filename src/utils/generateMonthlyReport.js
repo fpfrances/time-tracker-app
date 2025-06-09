@@ -146,7 +146,7 @@ export async function generateMonthlyPDF(monthlyLogsByWeek, user) {
       const dateObj = log.clockInTime ? new Date(log.clockInTime) : null;
       if (!dateObj) return;
 
-      const dateKey = dateObj.toISOString().split('T')[0]; // e.g., '2025-06-03'
+      const dateKey = dateObj.toLocaleDateString('en-CA'); // ISO format YYYY-MM-DD in local time
       const dayName = dateObj.toLocaleDateString(undefined, { weekday: 'long' });
 
       if (!dailySummary[dateKey]) {
@@ -173,7 +173,8 @@ export async function generateMonthlyPDF(monthlyLogsByWeek, user) {
     y = drawTableHeader(y);
 
     // Render daily summaries rows
-    for (const dateKey in dailySummary) {
+    const sortedDates = Object.keys(dailySummary).sort((a, b) => new Date(a) - new Date(b));
+    for (const dateKey of sortedDates) {
       const { dayName, totalDuration, latestNote } = dailySummary[dateKey];
 
       if (y < margin + lineHeight * 3) {
