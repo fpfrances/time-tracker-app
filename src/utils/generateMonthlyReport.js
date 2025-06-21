@@ -152,14 +152,17 @@ export async function generateMonthlyPDF(monthlyLogsByWeek, user) {
       if (!dailySummary[dateKey]) {
         dailySummary[dateKey] = {
           totalDuration: 0,
-          latestNote: '',
-          latestTime: 0,
+          notes: [],
           dayName,
         };
       }
 
       if (typeof log.duration === 'number') {
         dailySummary[dateKey].totalDuration += log.duration;
+      }
+
+      if (log.note) {
+        dailySummary[dateKey].notes.push(log.note); // store all notes
       }
 
       const outTime = log.clockOutTime ? new Date(log.clockOutTime).getTime() : 0;
@@ -175,43 +178,82 @@ export async function generateMonthlyPDF(monthlyLogsByWeek, user) {
     // Render daily summaries rows
     const sortedDates = Object.keys(dailySummary).sort((a, b) => new Date(a) - new Date(b));
     for (const dateKey of sortedDates) {
-      const { dayName, totalDuration, latestNote } = dailySummary[dateKey];
+    const { dayName, totalDuration, notes } = dailySummary[dateKey];
 
-      if (y < margin + lineHeight * 3) {
-        // New page if space is low
-        page = pdfDoc.addPage([595, 842]);
-        y = height - margin;
-        addHeaderAndFooter();
-        y = drawTableHeader(y);
-      }
-
-      page.drawText(dayName, {
-        x: margin + 10,
-        y,
-        size: fontSize,
-        font: fontRegular,
-      });
-      page.drawText(`${totalDuration.toFixed(2)}h`, {
-        x: margin + 120,
-        y,
-        size: fontSize,
-        font: fontRegular,
-      });
-      page.drawText(latestNote || 'No note', {
-        x: margin + 200,
-        y,
-        size: fontSize,
-        font: fontRegular,
-      });
-
-      y -= lineHeight;
-    }
-
-    y -= lineHeight * 0.5; // extra spacing after week
+  if (y < margin + lineHeight * 3 + (notes?.length || 1) * 14) {
+    page = pdfDoc.addPage([595, 842]);
+    y = height - margin;
+    addHeaderAndFooter();
+    y = drawTableHeader(y);
   }
+
+  // Draw the day name and hours
+  page.drawText(dayName, {
+    x: margin + 10,
+    y,
+    size: fontSize - 1,
+    font: fontRegular,
+  });
+  page.drawText(`${totalDuration.toFixed(2)}h`, {
+    x: margin + 120,
+    y,
+    size: fontSize - 1,
+    font: fontRegular,
+  });
+
+  if (Array.isArray(notes) && notes.length) {
+    notes.forEach((note, index) => {
+      page.drawText(`• ${note}`, {
+        x: margin + 200,
+        y: y - index * 14,
+        size: fontSize - 3,
+        font: fontRegular,
+        color: rgb(0, 0, 0),
+      });
+    });
+
+    y -= notes.length * 14;
+  } else {
+    page.drawText('No note', {
+      x: margin + 200,
+      y,
+      size: fontSize,
+      font: fontRegular,
+    });
+    y -= lineHeight;
+  }
+
+   y -= 5; // extra spacing after each day
+}
+
+// Draw separator line above total
+  page.drawLine({
+    start: { x: 50, y },
+    end: { x: width - 50, y },
+    thickness: 1,
+    color: rgb(0.5, 0.5, 0.5),
+  });
+
+  y -= 18;
+
+// Total hours at the end of each week
+const totalHours = Object.values(dailySummary)
+  .reduce((acc, { totalDuration }) => acc + totalDuration, 0)
+  .toFixed(2);
+
+page.drawText(`Total Hours: ${totalHours}`, {
+  x: margin + 10,
+  y,
+  size: fontSize + 1,
+  font: fontBold,
+  color: rgb(0, 0, 0),
+});
+
+y -= lineHeight;
 
   // Save and trigger download
   const pdfBytes = await pdfDoc.save();
   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
   saveAs(blob, `MonthlyReport_${monthName.replace(/ /g, '_')}.pdf`);
+}
 }

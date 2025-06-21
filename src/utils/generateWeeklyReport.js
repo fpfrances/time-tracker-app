@@ -20,18 +20,16 @@ export async function generateWeeklyPDF(weeklyLog, dailyNotes, userTimezone, wee
     });
   };
 
-  // Draw header background (top bar)
+// Draw header background (top bar)
 const startX = 0;
 const barHeight = 30;
 const barWidth = width;
-const steps = 50; // Number of gradient steps
-const topY = height - barHeight; // top bar y-position
-const bottomY = 0;               // bottom bar y-position
+const steps = 50;                 // Number of gradient steps
+const topY = height - barHeight;  // top bar y-position
+const bottomY = 0;                // bottom bar y-position
 
 for (let i = 0; i < steps; i++) {
   // Calculate interpolation between purple and blue
-  // Purple rgb(0.5, 0, 0.5)
-  // Blue rgb(0.2, 0.4, 0.8)
   const t = i / (steps - 1);
   const r = 0.5 * (1 - t) + 0.2 * t;
   const g = 0 * (1 - t) + 0.4 * t;
@@ -78,43 +76,52 @@ for (let i = 0; i < steps; i++) {
   drawText('Hours', 150, y, 14, true);
   drawText('Notes', 250, y, 14, true);
 
-  y -= 15;
+  y -= 7;
 
   // Draw a line under headers
   page.drawLine({
     start: { x: 50, y },
     end: { x: width - 50, y },
-    thickness: 2,
+    thickness: 1,
     color: rgb(0.5, 0.5, 0.5),
   });
 
-  y -= 30;
+  y -= 20;
 
   // List daily logs with notes
   Object.entries(weeklyLog).forEach(([day, hours]) => {
-    drawText(day, 50, y);
-    drawText(hours.toFixed(2), 150, y);
-    if (dailyNotes[day]) {
-      drawText(dailyNotes[day], 250, y);
-    }
-    y -= 20;
-  });
+  drawText(day, 50, y);
+  drawText(hours.toFixed(2), 150, y);
 
-  y -= 5;
+  const notes = dailyNotes[day];
+  let noteLines = 1;
+
+  if (Array.isArray(notes) && notes.length > 0) {
+    notes.forEach((note, index) => {
+      drawText(`• ${note}`, 250, y - index * 12, 10);
+    });
+    noteLines = notes.length;
+  } else {
+    drawText('No note', 250, y, 10);
+  }
+
+  // Subtract height: base line + all additional note lines + padding
+  y -= Math.max(20, noteLines * 12 + 8);
+});
 
   // Draw separator line above total
   page.drawLine({
     start: { x: 50, y },
     end: { x: width - 50, y },
-    thickness: 2,
+    thickness: 1,
     color: rgb(0.5, 0.5, 0.5),
   });
 
-  y -= 25;
+  y -= 18;
 
   // Total hours in bold
 const total = Object.values(weeklyLog).reduce((acc, cur) => acc + cur, 0).toFixed(2);
-drawText(`Total Hours: ${total}`, 50, y, 16, true);
+drawText(`Total Hours: ${total}`, 50, y, 15, true);
 
 // Add download timestamp in white at bottom bar
 const downloadDate = new Date();

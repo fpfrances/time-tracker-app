@@ -55,24 +55,9 @@ export const Dashboard = () => {
   const [clockInTime, setClockInTime] = useState(null);
   const [clockOutTime, setClockOutTime] = useState(null);
   const [isClockedIn, setIsClockedIn] = useState(false);
-  const [weeklyLog, setWeeklyLog] = useState({
-    Mon: 0,
-    Tue: 0,
-    Wed: 0,
-    Thu: 0,
-    Fri: 0,
-    Sat: 0,
-    Sun: 0,
-  });
-  const [dailyNotes, setDailyNotes] = useState({
-    Mon: '',
-    Tue: '',
-    Wed: '',
-    Thu: '',
-    Fri: '',
-    Sat: '',
-    Sun: '',
-  });
+  const [weeklyLog, setWeeklyLog] = useState({});
+  const [lastDailyNotes, setLastDailyNotes] = useState({});      // for UI
+  const [dailyNotes, setDailyNotes] = useState({});               // for PDF
   const [noteModalOpen, setNoteModalOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState('');
   const [currentDayKey, setCurrentDayKey] = useState('');
@@ -193,7 +178,7 @@ export const Dashboard = () => {
         console.error('Failed to update time log:', error);
       } else {
         // Update dailyNotes state with new note for immediate UI update
-        setDailyNotes((prev) => ({
+        setLastDailyNotes((prev) => ({
           ...prev,
           [currentDayKey]: noteDraft,
         }));
@@ -356,7 +341,9 @@ export const Dashboard = () => {
           Sat: 0,
           Sun: 0,
         };
-        const tempDailyNotes = {
+
+        // Initialize last notes for UI display
+        const tempLastNotes = {
           Mon: '',
           Tue: '',
           Wed: '',
@@ -364,6 +351,17 @@ export const Dashboard = () => {
           Fri: '',
           Sat: '',
           Sun: '',
+        };
+
+        // Initialize daily notes array for PDF generation
+        const tempDailyNotes = {
+          Mon: [],
+          Tue: [],
+          Wed: [],
+          Thu: [],
+          Fri: [],
+          Sat: [],
+          Sun: [],
         };
 
         weekly.forEach((log) => {
@@ -376,17 +374,21 @@ export const Dashboard = () => {
             weekday: 'short',
           });
           tempWeeklyLog[dayKey] += parseFloat(log.duration || 0);
-          tempDailyNotes[dayKey] = log.note || '';
+
+          if(log.note) {
+          tempDailyNotes[dayKey].push(log.note);
+          tempLastNotes[dayKey] = log.note || '';
+          }
         });
 
         setWeeklyLog(tempWeeklyLog);
-        setDailyNotes(tempDailyNotes);
+        setDailyNotes(tempDailyNotes);        // for PDF
+        setLastDailyNotes(tempLastNotes);     // for UI
 
         // Get monthly logs
         const year = localNow.getFullYear();
         const month = localNow.getMonth() + 1; // JavaScript months are 0-based
         const monthly = await getMonthlyLogs(user.id, year, month);
-        //setMonthlyLogs(monthly);
 
         // Initialize containers for monthly logs and notes grouped by week
         const monthlyLogsByWeek = {};
@@ -463,7 +465,7 @@ export const Dashboard = () => {
 
     const resetWeeklyData = () => {
       setWeeklyLog({ Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 });
-      setDailyNotes({
+      setLastDailyNotes({
         Mon: '',
         Tue: '',
         Wed: '',
@@ -550,7 +552,7 @@ export const Dashboard = () => {
                   This week you've tracked
                 </h2>
                 <ul className="list-inside text-left space-y-1">
-                  {Object.entries(dailyNotes).map(([key, note]) =>
+                  {Object.entries(lastDailyNotes).map(([key, note]) =>
                     note ? (
                       <li key={key} className="break-words">
                         <strong>{weekdayMap[key]}:</strong>
