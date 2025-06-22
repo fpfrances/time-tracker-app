@@ -94,19 +94,39 @@ for (let i = 0; i < steps; i++) {
   drawText(hours.toFixed(2), 150, y);
 
   const notes = dailyNotes[day];
-  let noteLines = 1;
+  const noteText = Array.isArray(notes) && notes.length > 0
+    ? notes.map(n => `${n}`).join(' | ')
+    : 'No note';
 
-  if (Array.isArray(notes) && notes.length > 0) {
-    notes.forEach((note, index) => {
-      drawText(`• ${note}`, 250, y - index * 12, 10);
-    });
-    noteLines = notes.length;
-  } else {
-    drawText('No note', 250, y, 10);
+  const maxNoteWidth = 280; // max width in points for note area
+  const fontSize = 10;
+  const lineHeight = 12;
+
+  const words = noteText.split(' ');
+  let line = '';
+  let lines = [];
+
+  words.forEach(word => {
+    const testLine = line + word + ' ';
+    const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+
+    if (testWidth > maxNoteWidth) {
+      lines.push(line.trim());
+      line = word + ' ';
+    } else {
+      line = testLine;
+    }
+  });
+
+  if (line.trim()) {
+    lines.push(line.trim());
   }
 
-  // Subtract height: base line + all additional note lines + padding
-  y -= Math.max(20, noteLines * 12 + 8);
+  lines.forEach((lineText, index) => {
+    drawText(lineText, 250, y - index * lineHeight, fontSize);
+  });
+
+  y -= Math.max(20, lines.length * lineHeight + 8);
 });
 
   // Draw separator line above total

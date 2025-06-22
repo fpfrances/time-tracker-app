@@ -194,36 +194,48 @@ export async function generateMonthlyPDF(monthlyLogsByWeek, user) {
     size: fontSize - 1,
     font: fontRegular,
   });
-  page.drawText(`${totalDuration.toFixed(2)}h`, {
+  page.drawText(`${totalDuration.toFixed(2)}`, {
     x: margin + 120,
     y,
     size: fontSize - 1,
     font: fontRegular,
   });
 
+ // Format and wrap notes into lines
+  let noteText = 'No note';
   if (Array.isArray(notes) && notes.length) {
-    notes.forEach((note, index) => {
-      page.drawText(`• ${note}`, {
-        x: margin + 200,
-        y: y - index * 14,
-        size: fontSize - 3,
-        font: fontRegular,
-        color: rgb(0, 0, 0),
-      });
-    });
-
-    y -= notes.length * 14;
-  } else {
-    page.drawText('No note', {
-      x: margin + 200,
-      y,
-      size: fontSize - 3,
-      font: fontRegular,
-    });
-    y -= lineHeight;
+    noteText = notes.map(n => `${n}`).join(' | ');
   }
 
-   y -= 5; // extra spacing after each day
+  const words = noteText.split(' ');
+  let line = '';
+  const lines = [];
+
+  for (const word of words) {
+    const testLine = line + word + ' ';
+    const testWidth = fontRegular.widthOfTextAtSize(testLine, fontSize - 3);
+    if (testWidth > 300) {
+      lines.push(line.trim());
+      line = word + ' ';
+    } else {
+      line = testLine;
+    }
+  }
+  if (line.trim()) lines.push(line.trim());
+
+  // Draw wrapped lines
+  lines.forEach((text, i) => {
+    page.drawText(text, {
+      x: margin + 200,
+      y: y - i * 13,
+      size: fontSize - 3,
+      font: fontRegular,
+      color: rgb(0, 0, 0),
+    });
+  });
+
+  y -= lines.length * 13;
+  y -= 5; // extra spacing after each day
 }
 
 // Draw separator line above total
