@@ -217,7 +217,7 @@ export async function generateMonthlyPDF(monthlyLogsByWeek, user) {
     page.drawText('No note', {
       x: margin + 200,
       y,
-      size: fontSize,
+      size: fontSize - 3,
       font: fontRegular,
     });
     y -= lineHeight;
