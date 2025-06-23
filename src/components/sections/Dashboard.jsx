@@ -365,7 +365,11 @@ export const Dashboard = () => {
         };
 
         weekly.forEach((log) => {
-          const logTime = log.clockOutTime || log.clockInTime;
+          const clockOut = log.clock_out || log.clockOutTime;
+          // ✅ Only skip logs that are actively in-progress
+          if (!clockOut) return;
+
+          const logTime = log.clockOutTime || log.clockInTime || log.clock_out;
           const localDateStr = new Date(logTime).toLocaleString('en-US', {
             timeZone: userTimeZone,
           });
