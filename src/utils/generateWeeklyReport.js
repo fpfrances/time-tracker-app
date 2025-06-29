@@ -148,7 +148,7 @@ const downloadDate = new Date();
 const formattedDate = downloadDate.toLocaleString();
 
 page.drawText(`Downloaded on: ${formattedDate}`, {
-  x: 425,
+  x: 415,
   y: 10,
   size: 9,
   font: fontBold,

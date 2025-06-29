@@ -61,7 +61,7 @@ export async function generateMonthlyPDF(monthlyLogsByWeek, user) {
     });
 
     page.drawText(`Downloaded on: ${new Date().toLocaleString()}`, {
-      x: width - margin - 120,
+      x: width - margin - 130,
       y: 10,
       size: 9,
       font: fontBold,
