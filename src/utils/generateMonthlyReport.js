@@ -121,11 +121,11 @@ export async function generateMonthlyPDF(monthlyLogsByWeek, user) {
   for (const weekRange in monthlyLogsByWeek) {
     // If near bottom, add new page & redraw header/footer and table header
     if (y < margin + lineHeight * 6) {
-      page = pdfDoc.addPage([595, 842]);
-      y = height - margin;
-      addHeaderAndFooter();
-      // Also redraw table header after week label
-    }
+  page = pdfDoc.addPage([595, 842]);
+  y = height - margin;
+  addHeaderAndFooter();
+  y = drawTableHeader(y); // redraw table header on new page
+}
 
     // Draw week label
     page.drawText(`Week: ${weekRange}`, {
@@ -166,10 +166,13 @@ export async function generateMonthlyPDF(monthlyLogsByWeek, user) {
       }
 
       const outTime = log.clockOutTime ? new Date(log.clockOutTime).getTime() : 0;
-      if (outTime > dailySummary[dateKey].latestTime && log.note) {
-        dailySummary[dateKey].latestNote = log.note;
-        dailySummary[dateKey].latestTime = outTime;
-      }
+      if (dailySummary[dateKey].latestTime === undefined) {
+  dailySummary[dateKey].latestTime = 0;
+}
+if (outTime > dailySummary[dateKey].latestTime && log.note) {
+  dailySummary[dateKey].latestNote = log.note;
+  dailySummary[dateKey].latestTime = outTime;
+}
     });
 
     // Draw table header for the week
@@ -261,11 +264,11 @@ page.drawText(`Total Hours: ${totalHours}`, {
   color: rgb(0, 0, 0),
 });
 
-y -= lineHeight;
+y -= lineHeight * 2;
+  }
 
   // Save and trigger download
   const pdfBytes = await pdfDoc.save();
   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
   saveAs(blob, `MonthlyReport_${monthName.replace(/ /g, '_')}.pdf`);
-}
 }
