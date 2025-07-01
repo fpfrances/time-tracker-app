@@ -18,10 +18,20 @@ export async function generateMonthlyPDF(monthlyLogsByWeek, user) {
   let y = height - margin;
 
   // Declare once here:
-  const firstWeekKey = Object.keys(monthlyLogsByWeek)[0];
-  const monthName = firstWeekKey
-    ? new Date(firstWeekKey.split(' - ')[0]).toLocaleString('default', { month: 'long', year: 'numeric' })
-    : 'Unknown Month';
+ let latestDate = null;
+
+  for (const weekRange in monthlyLogsByWeek) {
+    for (const log of monthlyLogsByWeek[weekRange]) {
+      const logDate = log.clockInTime ? new Date(log.clockInTime) : null;
+      if (logDate && (!latestDate || logDate > latestDate)) {
+        latestDate = logDate;
+      }
+    }
+  }
+
+const monthName = latestDate
+  ? latestDate.toLocaleString('default', { month: 'long', year: 'numeric' })
+  : 'Unknown Month';
 
   // Gradient bar helper
   const drawGradientBar = (yPos) => {
