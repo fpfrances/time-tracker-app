@@ -131,11 +131,10 @@ const monthName = latestDate
   for (const weekRange in monthlyLogsByWeek) {
     // If near bottom, add new page & redraw header/footer and table header
     if (y < margin + lineHeight * 6) {
-  page = pdfDoc.addPage([595, 842]);
-  y = height - margin;
-  addHeaderAndFooter();
-  y = drawTableHeader(y); // redraw table header on new page
-}
+    page = pdfDoc.addPage([595, 842]);
+    y = height - margin;
+    addHeaderAndFooter();
+  }
 
     // Draw week label
     page.drawText(`Week: ${weekRange}`, {
