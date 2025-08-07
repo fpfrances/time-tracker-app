@@ -25,11 +25,11 @@ const NoteModal = ({ open, note, setNote, onSave, onCancel }) => {
         </h2>
         <textarea
           value={note}
-          onChange={(e) => setNote(e.target.value.slice(0, 50))}
+          onChange={(e) => setNote(e.target.value.slice(0, 75))}
           className="w-full text-black p-2 border border-gray-300 rounded mb-4"
           rows={3}
-          maxLength={50}
-          placeholder="Max 50 characters..."
+          maxLength={75}
+          placeholder="Max 75 characters..."
         />
         <div className="flex justify-end space-x-2">
           <button
