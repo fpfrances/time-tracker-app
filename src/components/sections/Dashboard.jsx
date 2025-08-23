@@ -540,7 +540,7 @@ export const Dashboard = () => {
               )}
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-600 text-white font-semibold rounded-lg shadow-white shadow-md animate-pulse transition duration-300"
+                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-600 text-white font-semibold rounded-lg shadow-white shadow-md animate-pulse transition duration-300 cursor-pointer"
               >
                 Logout
               </button>
@@ -637,7 +637,7 @@ export const Dashboard = () => {
                   className={`py-2 rounded font-semibold transition ${
                     isClockedIn
                       ? 'bg-gray-400 cursor-not-allowed text-white'
-                      : 'bg-white text-purple-600 hover:bg-purple-100'
+                      : 'bg-white text-purple-600 hover:bg-purple-100 cursor-pointer'
                   }`}
                 >
                   Clock In
@@ -654,7 +654,7 @@ export const Dashboard = () => {
                   className={`py-2 rounded font-semibold transition ${
                     !isClockedIn || clockOutTime
                       ? 'bg-gray-400 cursor-not-allowed text-white'
-                      : 'bg-white text-purple-600 hover:bg-purple-100'
+                      : 'bg-white text-purple-600 hover:bg-purple-100 cursor-pointer'
                   }`}
                 >
                   Clock Out
@@ -697,7 +697,7 @@ export const Dashboard = () => {
               </div>
               <div className="md:w-1/2 w-full flex flex-col items-center justify-left">
                 <button
-                  className="px-3 py-2 mb-5 bg-gradient-to-r from-purple-500 to-blue-600 text-white font-semibold rounded-lg shadow-white shadow-md animate-pulse transition duration-300"
+                  className="px-3 py-2 mb-5 bg-gradient-to-r from-purple-500 to-blue-600 text-white font-semibold rounded-lg shadow-white shadow-md animate-pulse transition duration-300 cursor-pointer"
                   onClick={() => {
                     generateWeeklyPDF(
                       weeklyLog,
@@ -711,7 +711,7 @@ export const Dashboard = () => {
                   Download Weekly Report
                 </button>
                 <button
-                  className="px-2 py-2 bg-gradient-to-r from-purple-500 to-blue-600 text-white font-semibold rounded-lg shadow-white shadow-md animate-pulse transition duration-300"
+                  className="px-2 py-2 bg-gradient-to-r from-purple-500 to-blue-600 text-white font-semibold rounded-lg shadow-white shadow-md animate-pulse transition duration-300 cursor-pointer"
                   onClick={() => {
                     generateMonthlyPDF(monthlyLogsByWeek, user);
                   }}
