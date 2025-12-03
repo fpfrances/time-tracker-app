@@ -284,7 +284,9 @@ y -= lineHeight * 2;
   a.href = url;
   a.download = `MonthlyReport_${monthName.replace(/ /g, '_')}.pdf`;
   document.body.appendChild(a);
+  setTimeout(() => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}, 0);
 }

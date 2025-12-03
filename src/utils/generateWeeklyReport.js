@@ -163,7 +163,9 @@ const a = document.createElement('a');
 a.href = url;
 a.download = `Weekly_Report_${weekRange.replace(/\s+/g, '_')}.pdf`;
 document.body.appendChild(a);
-a.click();
-document.body.removeChild(a);
-URL.revokeObjectURL(url);
+setTimeout(() => {
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}, 0);
 }
