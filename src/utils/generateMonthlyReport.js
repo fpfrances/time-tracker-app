@@ -1,5 +1,4 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import { saveAs } from 'file-saver';
 
 export async function generateMonthlyPDF(monthlyLogsByWeek, user) {
   const pdfDoc = await PDFDocument.create();
@@ -18,7 +17,7 @@ export async function generateMonthlyPDF(monthlyLogsByWeek, user) {
   let y = height - margin;
 
   // Declare once here:
- let latestDate = null;
+  let latestDate = null;
 
   for (const weekRange in monthlyLogsByWeek) {
     for (const log of monthlyLogsByWeek[weekRange]) {
@@ -278,6 +277,5 @@ y -= lineHeight * 2;
 
   // Save and trigger download
   const pdfBytes = await pdfDoc.save();
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-  saveAs(blob, `MonthlyReport_${monthName.replace(/ /g, '_')}.pdf`);
+  return pdfBytes; // return instead of calling saveAs
 }
