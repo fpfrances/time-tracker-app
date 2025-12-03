@@ -280,13 +280,14 @@ y -= lineHeight * 2;
   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
 
+  if (/Mobi|Android/i.test(navigator.userAgent)) {
+  window.open(url, '_blank'); // user can manually save
+} else {
   const a = document.createElement('a');
   a.href = url;
   a.download = `MonthlyReport_${monthName.replace(/ /g, '_')}.pdf`;
   document.body.appendChild(a);
-  setTimeout(() => {
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}, 0);
+}
 }
