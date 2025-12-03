@@ -1,4 +1,5 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { saveAs } from 'file-saver';
 
 export async function generateWeeklyPDF(weeklyLog, dailyNotes, userTimezone, weekRange, user) {
   const pdfDoc = await PDFDocument.create();
@@ -157,15 +158,5 @@ page.drawText(`Downloaded on: ${formattedDate}`, {
 // Save and download PDF
 const pdfBytes = await pdfDoc.save();
 const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-const url = URL.createObjectURL(blob);
-
-const a = document.createElement('a');
-a.href = url;
-a.download = `Weekly_Report_${weekRange.replace(/\s+/g, '_')}.pdf`;
-document.body.appendChild(a);
-setTimeout(() => {
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}, 0);
+saveAs(blob, `Weekly_Report_${weekRange.replace(/\s+/g, '_')}.pdf`);
 }

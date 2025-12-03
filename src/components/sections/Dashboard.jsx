@@ -13,7 +13,6 @@ import { getWeeklyLogs, getMonthlyLogs } from '../../supabase/supabaseTimeLogs';
 import { generateWeeklyPDF } from '../../utils/generateWeeklyReport';
 import { generateMonthlyPDF } from '../../utils/generateMonthlyReport';
 import { FaGithub, FaLinkedin } from 'react-icons/fa';
-import { saveAs } from 'file-saver';
 
 // Basic Modal Component
 const NoteModal = ({ open, note, setNote, onSave, onCancel }) => {
@@ -712,15 +711,13 @@ export const Dashboard = () => {
                   Download Weekly Report
                 </button>
                 <button
-  className="px-2 py-2 bg-gradient-to-r from-purple-500 to-blue-600 text-white font-semibold rounded-lg shadow-white shadow-md animate-pulse transition duration-300 cursor-pointer"
-  onClick={async () => {
-    const pdfBytes = await generateMonthlyPDF(monthlyLogsByWeek, user);
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-    saveAs(blob, `MonthlyReport_${new Date().toLocaleString('default', { month: 'long', year: 'numeric' }).replace(/ /g, '_')}.pdf`);
-  }}
->
-  Download Monthly Report
-</button>
+                  className="px-2 py-2 bg-gradient-to-r from-purple-500 to-blue-600 text-white font-semibold rounded-lg shadow-white shadow-md animate-pulse transition duration-300 cursor-pointer"
+                  onClick={() => {
+                    generateMonthlyPDF(monthlyLogsByWeek, user);
+                  }}
+                >
+                  Download Monthly Report
+                </button>
               </div>
             </div>
           </div>
