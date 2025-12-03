@@ -1,4 +1,5 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { saveAs } from 'file-saver';
 
 export async function generateMonthlyPDF(monthlyLogsByWeek, user) {
   const pdfDoc = await PDFDocument.create();
@@ -278,16 +279,5 @@ y -= lineHeight * 2;
   // Save and trigger download
   const pdfBytes = await pdfDoc.save();
   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-  const url = URL.createObjectURL(blob);
-
-  if (/Mobi|Android/i.test(navigator.userAgent)) {
-  window.open(url, '_blank'); // user can manually save
-} else {
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `MonthlyReport_${monthName.replace(/ /g, '_')}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
+  saveAs(blob, `MonthlyReport_${monthName.replace(/ /g, '_')}.pdf`);
 }
