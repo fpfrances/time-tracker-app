@@ -1,14 +1,10 @@
 /*
 
-
 // UNCOMMENT THIS SNIPPET AND PLACE IN TO PRINT LAST WEEK REPORT BUTTON
 import { supabase } from "../supabaseClient";
 
 export const getLastMonthLogs = async (userId, userTimezone) => {
   const now = new Date();
-
-  // First day of current month
-  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   // First day of last month
   const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -34,7 +30,6 @@ export const getLastMonthLogs = async (userId, userTimezone) => {
   data.forEach((log) => {
     if (!log.clock_in || !log.clock_out) return;
 
-    // Convert to user's timezone
     const clockInLocal = new Date(
       new Date(log.clock_in).toLocaleString("en-US", { timeZone: userTimezone })
     );
@@ -44,7 +39,6 @@ export const getLastMonthLogs = async (userId, userTimezone) => {
 
     const duration = (clockOutLocal - clockInLocal) / (1000 * 60 * 60);
 
-    // Get week start (Monday)
     const day = clockInLocal.getDay() || 7;
     const weekStart = new Date(clockInLocal);
     weekStart.setDate(clockInLocal.getDate() - day + 1);
@@ -68,11 +62,20 @@ export const getLastMonthLogs = async (userId, userTimezone) => {
     });
   });
 
-  return monthlyLogsByWeek;
+  // 👇 ADD THIS PART
+  const sortedEntries = Object.entries(monthlyLogsByWeek).sort((a, b) => {
+    const startA = new Date(a[0].split(" - ")[0]);
+    const startB = new Date(b[0].split(" - ")[0]);
+    return startA - startB;
+  });
+
+  return Object.fromEntries(sortedEntries);
 };
+
 
 // ADD THIS IMPORT TO DASHBOARD.JSX
 import { getLastMonthLogs } from "../../supabase/supabaseMonthlyLogsHelper";
+
 
 // SUBSTITUTE THIS SNIPPET INTO DASHBOARD.JSX WHERE INDICATED TO PRINT LAST WEEK REPORT BUTTON
 <button
