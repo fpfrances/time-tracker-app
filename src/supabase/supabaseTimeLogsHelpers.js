@@ -1,6 +1,5 @@
 /*
 
-
 // UNCOMMENT THIS SNIPPET AND PLACE IN TO PRINT LAST WEEK REPORT BUTTON
 import { supabase } from "../supabaseClient";
 
